@@ -1,0 +1,20 @@
+# env
+.env
+.env.local
+.env.*.local
+
+# vercel
+.vercel
+
+# deps
+node_modules/
+
+# gba artifacts (never commit ROMs or saves)
+*.gba
+*.sav
+*.state
+
+# misc
+.DS_Store
+dist/
+build/
