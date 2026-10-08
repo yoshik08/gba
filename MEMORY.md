@@ -1,0 +1,1 @@
+- [GBA Build Summary](C:/Users/yoshi/.claude/projects/T--gba/memory/gba-build-summary.md) — Summary of work done on GBA emulator app setup
