@@ -1,5 +1,5 @@
 const NAME = 'gba-cache';
-const VERSION = 1;
+const VERSION = 2;
 
 function openDb() {
   return new Promise((resolve, reject) => {
@@ -9,6 +9,7 @@ function openDb() {
       if (!db.objectStoreNames.contains('roms')) db.createObjectStore('roms');
       if (!db.objectStoreNames.contains('sram')) db.createObjectStore('sram');
       if (!db.objectStoreNames.contains('states')) db.createObjectStore('states');
+      if (!db.objectStoreNames.contains('cheats')) db.createObjectStore('cheats');
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
