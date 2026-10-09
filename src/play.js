@@ -320,6 +320,7 @@ async function init() {
   emu = await mGBA({
     canvas,
     locateFile: (path) => (path.endsWith('.wasm') ? wasmUrl : `/gba/mgba/${path}`),
+    mainScriptUrlOrBlob: '/gba/mgba/mgba.js',
   });
   await emu.FSInit();
   emu.setCoreSettings({
