@@ -1,6 +1,6 @@
-import { requireUser } from '../../../lib/auth.js';
-import { readRawBody } from '../../../lib/body.js';
-import { getDatabase } from '../../../lib/mongodb.js';
+import { requireUser } from '../../lib/auth.js';
+import { readRawBody } from '../../lib/body.js';
+import { getDatabase } from '../../lib/mongodb.js';
 
 export default async function handler(req, res) {
   const user = requireUser(req, res);
