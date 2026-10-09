@@ -1,5 +1,5 @@
-import { requireUser } from '../../../lib/auth.js';
-import { folderId, getDrive } from '../../../lib/drive.js';
+import { requireUser } from '../../lib/auth.js';
+import { folderId, getDrive } from '../../lib/drive.js';
 
 export default async function handler(req, res) {
   const user = requireUser(req, res);
