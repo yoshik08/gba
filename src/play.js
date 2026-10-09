@@ -12,6 +12,7 @@ const loadList = document.getElementById('load-list');
 const ffBtn = document.getElementById('fast-forward');
 const cheatModal = document.getElementById('cheat-modal');
 const cheatInput = document.getElementById('cheat-input');
+const helpModal = document.getElementById('help-modal');
 
 const KEY_MAP = {
   ArrowUp: 'Up',
@@ -371,7 +372,7 @@ function setupMenu() {
   });
   ffBtn.addEventListener('click', () => {
     fastForward = !fastForward;
-    emu.setFastForwardMultiplier(fastForward ? 4 : 1);
+    emu.setFastForwardMultiplier(fastForward ? 2 : 1);
     ffBtn.textContent = fastForward ? 'Fast forward on' : 'Fast forward';
   });
   document.getElementById('cheats').addEventListener('click', async () => {
@@ -381,6 +382,14 @@ function setupMenu() {
   });
   document.getElementById('cheat-close').addEventListener('click', () => {
     cheatModal.style.display = 'none';
+  });
+  document.getElementById('help-btn').addEventListener('click', () => {
+    menu.style.display = 'none';
+    cheatModal.style.display = 'none';
+    helpModal.style.display = 'block';
+  });
+  document.getElementById('help-close').addEventListener('click', () => {
+    helpModal.style.display = 'none';
   });
   document.getElementById('cheat-apply').addEventListener('click', async () => {
     try {
@@ -467,11 +476,16 @@ async function init() {
     if (running && playedSinceState) pushState().catch(() => {});
   }, 60000);
 
+  let wasRunningBeforeHide = false;
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
+      wasRunningBeforeHide = running;
       emu.pauseGame();
       running = false;
       if (playedSinceState) pushState().catch(() => {});
+    } else if (wasRunningBeforeHide) {
+      wasRunningBeforeHide = false;
+      resumeAudio().catch(() => {});
     }
   });
 }
