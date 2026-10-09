@@ -1,4 +1,3 @@
-import mGBA from '@thenick775/mgba-wasm';
 import { gunzipBytes, gzipBytes } from './gzip.js';
 import { idbGet, idbSet } from './idb.js';
 
@@ -316,11 +315,11 @@ function setupMenu() {
 async function init() {
   if (!romId || !(await requireSession())) return;
 
+  const { default: mGBA } = await import(/* @vite-ignore */ '/gba/mgba/mgba.js');
   const wasmUrl = '/gba/mgba/mgba.wasm';
   emu = await mGBA({
     canvas,
     locateFile: (path) => (path.endsWith('.wasm') ? wasmUrl : `/gba/mgba/${path}`),
-    mainScriptUrlOrBlob: '/gba/mgba/mgba.js',
   });
   await emu.FSInit();
   emu.setCoreSettings({

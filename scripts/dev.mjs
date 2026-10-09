@@ -1,4 +1,5 @@
 import { createServer } from 'vite';
+import './copy-mgba.mjs';
 
 const port = parseInt(process.env.PORT || '5173', 10);
 const server = await createServer({
