@@ -29,7 +29,7 @@
       padding: 6px 4px;
       flex: 0 0 auto;
     }
-    #topbar button, #menu button {
+    #topbar button, #menu button, #cheat-modal button {
       background: var(--bg-elev);
       color: var(--text);
       border: 1px solid var(--border);
@@ -137,6 +137,37 @@
       max-width: 420px;
     }
     #menu button { display: block; width: 100%; margin: 6px 0; text-align: left; }
+    #cheat-modal {
+      display: none;
+      position: absolute;
+      top: 48px;
+      left: 8px;
+      right: 8px;
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      z-index: 6;
+      max-width: 420px;
+    }
+    #cheat-modal h3 { margin: 0 0 4px; }
+    #cheat-modal .hint { font-size: 0.78rem; color: var(--muted); margin: 4px 0 8px; }
+    #cheat-modal .hint code { color: var(--text); }
+    #cheat-input {
+      width: 100%;
+      box-sizing: border-box;
+      min-height: 130px;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      resize: vertical;
+    }
+    #cheat-modal .row { display: flex; gap: 8px; margin-top: 8px; }
+    #cheat-modal .row button { flex: 1; }
     #toast {
       position: fixed;
       bottom: 16px;
@@ -181,8 +212,19 @@
         <button id="save-state" type="button">Save state</button>
         <div id="load-list"></div>
         <button id="fast-forward" type="button">Fast forward</button>
+        <button id="cheats" type="button">Cheats</button>
         <button id="back" type="button">Back to library</button>
         <button id="menu-close" type="button">Close</button>
+      </div>
+      <div id="cheat-modal">
+        <h3>Cheats</h3>
+        <p class="hint">GameShark / Action Replay codes, one per line.<br>Format: <code>Name: XXXXXXXX YYYYYYYY</code> — lines starting with # are ignored.</p>
+        <textarea id="cheat-input" placeholder="Walk through walls: 509197D3 542975F4&#10;Rare candy: 128898B6 EDA43037"></textarea>
+        <div class="row">
+          <button id="cheat-apply" type="button">Apply</button>
+          <button id="cheat-clear" type="button">Clear</button>
+          <button id="cheat-close" type="button">Close</button>
+        </div>
       </div>
     </div>
     <div id="controls">
