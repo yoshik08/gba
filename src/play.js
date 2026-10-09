@@ -10,6 +10,8 @@ const progress = document.getElementById('progress');
 const progressLabel = document.getElementById('progress-label');
 const loadList = document.getElementById('load-list');
 const ffBtn = document.getElementById('fast-forward');
+const cheatModal = document.getElementById('cheat-modal');
+const cheatInput = document.getElementById('cheat-input');
 
 const KEY_MAP = {
   ArrowUp: 'Up',
@@ -33,6 +35,7 @@ let running = false;
 let playedSinceState = false;
 let sramTimer = null;
 let fastForward = false;
+let romBytesCache = null;
 
 function showToast(text) {
   const now = new Date();
@@ -206,6 +209,67 @@ async function loadRemoteState(stateId) {
   emu.loadState(0);
 }
 
+function romGameCode() {
+  if (!romBytesCache || romBytesCache.length < 0xb0) return 'GAME';
+  return String.fromCharCode(...romBytesCache.slice(0xac, 0xb0));
+}
+
+function parseCheats(text) {
+  const cheats = [];
+  let n = 0;
+  for (const raw of String(text).split('\n')) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#') || line.startsWith('//')) continue;
+    let name;
+    let codePart;
+    const colon = line.indexOf(':');
+    if (colon > 0) {
+      name = line.slice(0, colon).trim() || `Cheat ${n + 1}`;
+      codePart = line.slice(colon + 1);
+    } else {
+      n += 1;
+      name = `Cheat ${n}`;
+      codePart = line;
+    }
+    const codes = codePart.trim().split(/\s+/).filter(Boolean);
+    if (!codes.length) continue;
+    if (!codes.every((c) => /^[0-9a-fA-F]{8}$/.test(c))) {
+      throw new Error(`Bad code in "${name}" — use 8-hex-digit pairs`);
+    }
+    cheats.push({ name: name.slice(0, 64), codes });
+  }
+  return cheats;
+}
+
+function applyCheatText(text) {
+  const cheats = parseCheats(text);
+  if (!cheats.length) {
+    showToast('No cheats entered');
+    return;
+  }
+  const body = cheats.map((c) => `[${c.name}]\ncodes=${c.codes.join(' ')}`).join('\n\n') + '\n';
+  const file = new File([body], `${romGameCode()}.cheats`, { type: 'text/plain' });
+  emu.uploadCheats(file, () => {
+    let ok = false;
+    try {
+      ok = emu.autoLoadCheats();
+    } catch {
+      /* ignore */
+    }
+    showToast(ok ? `${cheats.length} cheat${cheats.length === 1 ? '' : 's'} on` : 'Cheats loaded');
+  });
+}
+
+async function loadSavedCheats() {
+  try {
+    const saved = await idbGet('cheats', romId);
+    if (saved && saved.byteLength) return new TextDecoder().decode(saved);
+  } catch {
+    /* ignore */
+  }
+  return '';
+}
+
 function bindKeys() {
   emu.toggleInput(false);
   const down = new Set();
@@ -310,6 +374,32 @@ function setupMenu() {
     emu.setFastForwardMultiplier(fastForward ? 4 : 1);
     ffBtn.textContent = fastForward ? 'Fast forward on' : 'Fast forward';
   });
+  document.getElementById('cheats').addEventListener('click', async () => {
+    menu.style.display = 'none';
+    cheatInput.value = await loadSavedCheats();
+    cheatModal.style.display = 'block';
+  });
+  document.getElementById('cheat-close').addEventListener('click', () => {
+    cheatModal.style.display = 'none';
+  });
+  document.getElementById('cheat-apply').addEventListener('click', async () => {
+    try {
+      applyCheatText(cheatInput.value);
+      await idbSet('cheats', romId, new TextEncoder().encode(cheatInput.value).buffer);
+      cheatModal.style.display = 'none';
+    } catch (err) {
+      showToast(err.message || 'Bad cheat codes');
+    }
+  });
+  document.getElementById('cheat-clear').addEventListener('click', async () => {
+    cheatInput.value = '';
+    try {
+      await idbSet('cheats', romId, new ArrayBuffer(0));
+    } catch {
+      /* ignore */
+    }
+    showToast('Cheats cleared');
+  });
 }
 
 async function init() {
@@ -333,6 +423,7 @@ async function init() {
   });
 
   const romBytes = await downloadRom();
+  romBytesCache = romBytes;
   romName = `${romId}.gba`;
   await upload(emu.uploadRom.bind(emu), asFile(romName, romBytes));
 
@@ -352,6 +443,14 @@ async function init() {
 
   const loaded = emu.loadGame(`${emu.filePaths().gamePath}/${romName}`);
   if (!loaded) throw new Error('loadGame failed');
+  const savedCheats = await loadSavedCheats();
+  if (savedCheats.trim()) {
+    try {
+      applyCheatText(savedCheats);
+    } catch {
+      /* ignore bad saved cheats */
+    }
+  }
   emu.pauseGame();
   bindKeys();
   bindTouch();
