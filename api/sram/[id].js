@@ -1,16 +1,12 @@
+import { requireUser } from '../../../lib/auth.js';
+import { readRawBody } from '../../../lib/body.js';
 import { getDatabase } from '../../../lib/mongodb.js';
-import { verifySessionCookie } from '../../../lib/auth.js';
 
 export default async function handler(req, res) {
-  // Verify session
-  const sessionCookie = req.headers.cookie;
-  const userSub = verifySessionCookie(sessionCookie);
-  if (!userSub) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
-  }
+  const user = requireUser(req, res);
+  if (!user) return;
 
-  const { id } = req.query; // romId
+  const { id } = req.query;
   if (!id) {
     res.status(400).json({ error: 'Missing romId' });
     return;
@@ -21,55 +17,35 @@ export default async function handler(req, res) {
     const collection = db.collection('sram');
 
     if (req.method === 'GET') {
-      // Fetch the SRAM document
-      const doc = await collection.findOne({ userSub, romId: id });
-      if (doc && doc.data) {
-        // Return the binary data
-        res.setHeader('Content-Type', 'application/octet-stream');
-        res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
-        // Assuming doc.data is a Buffer (BinData stored as Buffer)
-        res.send(doc.data);
-      } else {
-        // No SRAM data, return empty buffer
-        res.send(Buffer.from([]));
+      const doc = await collection.findOne({ userSub: user.sub, romId: id });
+      if (!doc || !doc.data) {
+        res.status(404).json({ error: 'No SRAM' });
+        return;
       }
-    } else if (req.method === 'PUT') {
-      // Get the raw body (SRAM bytes)
-      let data = await new Promise((resolve, reject) => {
-        const chunks = [];
-        req.on('data', (chunk) => {
-          chunks.push(chunk);
-        });
-        req.on('end', () => {
-          resolve(Buffer.concat(chunks));
-        });
-        req.on('error', (err) => {
-          reject(err);
-        });
-      });
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Cache-Control', 'private');
+      res.send(Buffer.isBuffer(doc.data) ? doc.data : Buffer.from(doc.data.buffer));
+      return;
+    }
 
-      // Upsert the SRAM document
+    if (req.method === 'PUT') {
+      const data = await readRawBody(req);
       await collection.updateOne(
-        { userSub, romId: id },
+        { userSub: user.sub, romId: id },
         {
-          $set: {
-            data, // Buffer
-            updatedAt: new Date(),
-          },
-          $setOnInsert: {
-            createdAt: new Date(),
-          },
+          $set: { data, updatedAt: new Date() },
+          $setOnInsert: { createdAt: new Date() },
         },
         { upsert: true }
       );
-
       res.status(200).json({ message: 'SRAM saved' });
-    } else {
-      res.setHeader('Allow', 'GET, PUT');
-      res.status(405).end('Method Not Allowed');
+      return;
     }
+
+    res.setHeader('Allow', 'GET, PUT');
+    res.status(405).end('Method Not Allowed');
   } catch (error) {
-    console.error('Error handling SRAM:', error);
+    console.error('Error handling SRAM');
     res.status(500).json({ error: 'Internal server error' });
   }
 }

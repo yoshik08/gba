@@ -1,23 +1,18 @@
 {
   "name": "gba",
   "version": "1.0.0",
-  "description": "GBA emulator page for [yoshik.xyz/gba](https://yoshik.xyz/gba) — mGBA compiled to WebAssembly, running in the browser.",
-  "main": "index.js",
+  "type": "module",
+  "description": "GBA emulator page for yoshik.xyz/gba — mGBA compiled to WebAssembly.",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "vite build"
+    "dev": "node scripts/dev.mjs",
+    "build": "node scripts/copy-mgba.mjs && vite build",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/yoshik08/gba.git"
   },
-  "keywords": [],
-  "author": "",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/yoshik08/gba/issues"
-  },
-  "homepage": "https://github.com/yoshik08/gba#readme",
   "devDependencies": {
     "vite": "^8.3.4"
   },
@@ -26,7 +21,6 @@
     "cookie": "^2.0.1",
     "google-auth-library": "^11.2.0",
     "googleapis": "^185.0.0",
-    "mongodb": "^7.7.0",
-    "node-fetch": "^3.3.2"
+    "mongodb": "^7.7.0"
   }
 }

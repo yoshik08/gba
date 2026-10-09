@@ -1,92 +1,64 @@
-import { getDatabase } from '../../../lib/mongodb.js';
-import { verifySessionCookie } from '../../../lib/auth.js';
-import { google } from 'googleapis';
-import { PassThrough } from 'stream';
+import { requireUser } from '../../../lib/auth.js';
+import { folderId, getDrive } from '../../../lib/drive.js';
 
 export default async function handler(req, res) {
-  // Verify session
-  const sessionCookie = req.headers.cookie;
-  const userSub = verifySessionCookie(sessionCookie);
-  if (!userSub) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
-  }
+  const user = requireUser(req, res);
+  if (!user) return;
 
-  const { id } = req.query; // romId
+  const { id } = req.query;
   if (!id) {
     res.status(400).json({ error: 'Missing romId' });
     return;
   }
 
   try {
-    // Initialize Google Drive API with service account
-    const auth = new google.auth.GoogleAuth({
-      credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON),
-      scopes: ['https://www.googleapis.com/auth/drive.readonly'],
-    });
-    const drive = google.drive({ version: 'v3', auth });
-
-    // Get file metadata to verify existence and parents
+    const drive = getDrive();
+    const parent = folderId();
     const fileResponse = await drive.files.get({
       fileId: id,
       fields: 'id, name, size, parents',
+      supportsAllDrives: true,
     });
     const file = fileResponse.data;
-
-    // Optional: check if file is in the allowed folder
-    const folderId = process.env.GBA_DRIVE_FOLDER_ID;
-    if (folderId && !file.parents?.includes(folderId)) {
+    if (!file.parents?.includes(parent)) {
       res.status(403).json({ error: 'Access denied' });
       return;
     }
 
-    const size = parseInt(file.size, 10);
+    const size = parseInt(file.size, 10) || 0;
     const range = req.headers.range;
+    const requestHeaders = {};
+    if (range) requestHeaders.Range = range;
 
-    let start = 0;
-    let end = size - 1;
-    let statusCode = 200;
-    let contentLength = size;
-
-    if (range) {
-      const parts = range.replace(/bytes=/, '').split('-');
-      start = parseInt(parts[0], 10);
-      end = parts[1] ? parseInt(parts[1], 10) : size - 1;
-      if (isNaN(start) || isNaN(end) || start > end || end >= size) {
-        res.status(416).send('Requested range not satisfiable');
-        return;
-      }
-      contentLength = end - start + 1;
-      statusCode = 206;
-    }
-
-    // Stream the file with optional range header
     const response = await drive.files.get(
-      { fileId: id, alt: 'media' },
-      {
-        responseType: 'stream',
-        headers: { Range: req.headers.range }
-      }
+      { fileId: id, alt: 'media', supportsAllDrives: true },
+      { responseType: 'stream', headers: requestHeaders }
     );
 
-    // Set response headers
-    res.status(response.status);
+    const status = response.status === 206 || range ? 206 : 200;
+    res.status(status);
     res.setHeader('Content-Type', 'application/octet-stream');
     res.setHeader('Accept-Ranges', 'bytes');
-    res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
-
-    if (response.status === 206 && response.headers['content-range']) {
+    res.setHeader('Cache-Control', 'private');
+    if (response.headers['content-range']) {
       res.setHeader('Content-Range', response.headers['content-range']);
+    } else if (range && size) {
+      const parts = range.replace(/bytes=/i, '').split('-');
+      const start = parseInt(parts[0], 10) || 0;
+      const end = parts[1] ? parseInt(parts[1], 10) : size - 1;
+      res.setHeader('Content-Range', `bytes ${start}-${end}/${size}`);
     }
-
-    // Pipe the stream to the response
+    if (response.headers['content-length']) {
+      res.setHeader('Content-Length', response.headers['content-length']);
+    }
     response.data.pipe(res);
   } catch (error) {
-    console.error('Error streaming ROM:', error);
-    if (error.response && error.response.status === 416) {
+    const status = error.response?.status;
+    if (status === 416) {
       res.status(416).send('Requested range not satisfiable');
-    } else {
-      res.status(500).json({ error: 'Internal server error' });
+      return;
     }
+    console.error('Error streaming ROM');
+    res.status(500).json({ error: 'Internal server error' });
   }
 }

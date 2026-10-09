@@ -1,14 +1,50 @@
 {
+  "framework": null,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "devCommand": "npm run dev",
   "rewrites": [
     { "source": "/gba/api/:path*", "destination": "/api/:path*" },
-    { "source": "/gba/:path*", "destination": "/dist/:path*" }
+    { "source": "/gba/play", "destination": "/play/index.html" },
+    { "source": "/gba/play/", "destination": "/play/index.html" },
+    { "source": "/gba", "destination": "/index.html" },
+    { "source": "/gba/", "destination": "/index.html" },
+    { "source": "/gba/:path*", "destination": "/:path*" }
   ],
   "headers": [
+    {
+      "source": "/gba/play",
+      "headers": [
+        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
+        { "key": "Cross-Origin-Embedder-Policy", "value": "require-corp" }
+      ]
+    },
+    {
+      "source": "/gba/play/",
+      "headers": [
+        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
+        { "key": "Cross-Origin-Embedder-Policy", "value": "require-corp" }
+      ]
+    },
     {
       "source": "/gba/play/(.*)",
       "headers": [
         { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
         { "key": "Cross-Origin-Embedder-Policy", "value": "require-corp" }
+      ]
+    },
+    {
+      "source": "/gba/mgba/(.*)",
+      "headers": [
+        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
+        { "key": "Cross-Origin-Embedder-Policy", "value": "require-corp" },
+        { "key": "Cross-Origin-Resource-Policy", "value": "same-origin" }
+      ]
+    },
+    {
+      "source": "/gba/assets/(.*)",
+      "headers": [
+        { "key": "Cross-Origin-Resource-Policy", "value": "same-origin" }
       ]
     }
   ]

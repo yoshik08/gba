@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>GBA Play</title>
+  <link rel="stylesheet" href="/src/theme.css">
+  <style>
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      touch-action: none;
+      overscroll-behavior: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+    #app {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: env(safe-area-inset-top) 8px env(safe-area-inset-bottom);
+    }
+    #topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 4px;
+      flex: 0 0 auto;
+    }
+    #topbar button, #menu button {
+      background: var(--bg-elev);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+    }
+    #stage {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    canvas {
+      width: min(100%, calc((100dvh - 280px) * 1.5));
+      max-width: 100%;
+      height: auto;
+      image-rendering: pixelated;
+      background: #000;
+      touch-action: none;
+    }
+    #progress-wrap {
+      position: absolute;
+      left: 16px; right: 16px; bottom: 24px;
+      display: none;
+    }
+    #progress-wrap span { font-size: 0.85rem; color: var(--muted); }
+    progress { width: 100%; height: 8px; }
+    #overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.55);
+      font-size: 1.1rem;
+    }
+    #controls {
+      flex: 0 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 8px 4px 12px;
+    }
+    .dpad {
+      display: grid;
+      grid-template-columns: 56px 56px 56px;
+      grid-template-rows: 56px 56px 56px;
+      justify-self: start;
+      user-select: none;
+    }
+    .face {
+      display: grid;
+      grid-template-columns: 64px 64px;
+      grid-template-rows: 64px 64px;
+      gap: 8px;
+      justify-self: end;
+      align-content: end;
+    }
+    .pad, .face-btn, .shoulder, .sys {
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      touch-action: none;
+    }
+    .pad.active, .face-btn.active, .shoulder.active, .sys.active {
+      background: var(--accent);
+      color: #0b0b10;
+    }
+    .up { grid-column: 2; grid-row: 1; }
+    .left { grid-column: 1; grid-row: 2; }
+    .right { grid-column: 3; grid-row: 2; }
+    .down { grid-column: 2; grid-row: 3; }
+    .b { grid-column: 1; grid-row: 2; border-radius: 999px; }
+    .a { grid-column: 2; grid-row: 1; border-radius: 999px; }
+    .shoulders {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .shoulder, .sys { flex: 1; min-height: 40px; }
+    .sys-row {
+      grid-column: 1 / -1;
+      display: flex;
+      gap: 12px;
+    }
+    #menu {
+      display: none;
+      position: absolute;
+      top: 48px;
+      left: 8px;
+      right: 8px;
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      z-index: 5;
+      max-width: 420px;
+    }
+    #menu button { display: block; width: 100%; margin: 6px 0; text-align: left; }
+    #toast {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: rgba(12,12,14,0.9);
+      color: var(--accent-2);
+      padding: 8px 12px;
+      border-radius: 8px;
+      display: none;
+      z-index: 20;
+      pointer-events: none;
+    }
+    @media (orientation: landscape) {
+      #app { flex-direction: row; }
+      #stage { flex: 1; }
+      #controls {
+        width: min(46vw, 380px);
+        grid-template-columns: 1fr;
+        align-content: center;
+      }
+      canvas { width: min(100%, calc(100dvh * 1.5)); }
+    }
+    @media (min-width: 900px) {
+      #controls { max-width: 420px; margin: 0 auto; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="topbar">
+      <button id="menu-btn" type="button">Menu</button>
+      <span id="status"></span>
+    </div>
+    <div id="stage">
+      <canvas id="canvas" width="240" height="160"></canvas>
+      <div id="progress-wrap">
+        <span id="progress-label">Loading ROM…</span>
+        <progress id="progress" value="0" max="100"></progress>
+      </div>
+      <div id="overlay">Tap to start</div>
+      <div id="menu">
+        <button id="save-state" type="button">Save state</button>
+        <div id="load-list"></div>
+        <button id="fast-forward" type="button">Fast forward</button>
+        <button id="back" type="button">Back to library</button>
+        <button id="menu-close" type="button">Close</button>
+      </div>
+    </div>
+    <div id="controls">
+      <div class="shoulders">
+        <div class="shoulder" data-btn="L">L</div>
+        <div class="shoulder" data-btn="R">R</div>
+      </div>
+      <div class="dpad">
+        <div class="pad up" data-btn="Up">▲</div>
+        <div class="pad left" data-btn="Left">◀</div>
+        <div class="pad right" data-btn="Right">▶</div>
+        <div class="pad down" data-btn="Down">▼</div>
+      </div>
+      <div class="face">
+        <div class="face-btn b" data-btn="B">B</div>
+        <div class="face-btn a" data-btn="A">A</div>
+      </div>
+      <div class="sys-row">
+        <div class="sys" data-btn="Select">Select</div>
+        <div class="sys" data-btn="Start">Start</div>
+      </div>
+    </div>
+  </div>
+  <div id="toast">Saved</div>
+  <script type="module" src="/src/play.js"></script>
+</body>
+</html>
