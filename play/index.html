@@ -2,296 +2,101 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#000000">
+  <meta name="color-scheme" content="dark">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>GBA Play</title>
-  <link rel="stylesheet" href="/src/theme.css">
-  <style>
-    html, body {
-      height: 100%;
-      overflow: hidden;
-      touch-action: none;
-      overscroll-behavior: none;
-      user-select: none;
-      -webkit-user-select: none;
-      -webkit-touch-callout: none;
-    }
-    #app {
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      padding: env(safe-area-inset-top) 8px env(safe-area-inset-bottom);
-    }
-    #topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 6px 4px;
-      flex: 0 0 auto;
-    }
-    #topbar button, #menu button, #cheat-modal button, #help-modal button {
-      background: var(--bg-elev);
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px 12px;
-    }
-    #stage {
-      flex: 1 1 auto;
-      min-height: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-    }
-    canvas {
-      width: min(100%, calc((100dvh - 280px) * 1.5));
-      max-width: 100%;
-      height: auto;
-      image-rendering: pixelated;
-      background: #000;
-      touch-action: none;
-    }
-    #progress-wrap {
-      position: absolute;
-      left: 16px; right: 16px; bottom: 24px;
-      display: none;
-    }
-    #progress-wrap span { font-size: 0.85rem; color: var(--muted); }
-    progress { width: 100%; height: 8px; }
-    #overlay {
-      position: absolute;
-      inset: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0,0,0,0.55);
-      font-size: 1.1rem;
-    }
-    #controls {
-      flex: 0 0 auto;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      padding: 8px 4px 12px;
-    }
-    .dpad {
-      display: grid;
-      grid-template-columns: 56px 56px 56px;
-      grid-template-rows: 56px 56px 56px;
-      justify-self: start;
-      user-select: none;
-    }
-    .face {
-      display: grid;
-      grid-template-columns: 64px 64px;
-      grid-template-rows: 64px 64px;
-      gap: 8px;
-      justify-self: end;
-      align-content: end;
-    }
-    .pad, .face-btn, .shoulder, .sys {
-      border: 1px solid var(--border);
-      background: var(--card);
-      color: var(--text);
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      touch-action: none;
-    }
-    .pad.active, .face-btn.active, .shoulder.active, .sys.active {
-      background: var(--accent);
-      color: #0b0b10;
-    }
-    .up { grid-column: 2; grid-row: 1; }
-    .left { grid-column: 1; grid-row: 2; }
-    .right { grid-column: 3; grid-row: 2; }
-    .down { grid-column: 2; grid-row: 3; }
-    .b { grid-column: 1; grid-row: 2; border-radius: 999px; }
-    .a { grid-column: 2; grid-row: 1; border-radius: 999px; }
-    .shoulders {
-      grid-column: 1 / -1;
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-    }
-    .shoulder, .sys { flex: 1; min-height: 40px; }
-    .sys-row {
-      grid-column: 1 / -1;
-      display: flex;
-      gap: 12px;
-    }
-    #menu {
-      display: none;
-      position: absolute;
-      top: 48px;
-      left: 8px;
-      right: 8px;
-      background: var(--bg-elev);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px;
-      z-index: 5;
-      max-width: 420px;
-    }
-    #menu button { display: block; width: 100%; margin: 6px 0; text-align: left; }
-    #cheat-modal {
-      display: none;
-      position: absolute;
-      top: 48px;
-      left: 8px;
-      right: 8px;
-      background: var(--bg-elev);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px;
-      z-index: 6;
-      max-width: 420px;
-    }
-    #cheat-modal h3 { margin: 0 0 4px; }
-    #cheat-modal .hint { font-size: 0.78rem; color: var(--muted); margin: 4px 0 8px; }
-    #cheat-modal .hint code { color: var(--text); }
-    #cheat-input {
-      width: 100%;
-      box-sizing: border-box;
-      min-height: 130px;
-      background: var(--bg);
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px;
-      font-family: monospace;
-      font-size: 0.8rem;
-      resize: vertical;
-    }
-    #cheat-modal .row { display: flex; gap: 8px; margin-top: 8px; }
-    #cheat-modal .row button { flex: 1; }
-    #help-modal {
-      display: none;
-      position: absolute;
-      top: 48px;
-      left: 8px;
-      right: 8px;
-      background: var(--bg-elev);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px;
-      z-index: 6;
-      max-width: 420px;
-    }
-    #help-modal h3 { margin: 0 0 8px; }
-    #help-modal table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    #help-modal td { padding: 4px 6px; border-bottom: 1px solid var(--border); }
-    #help-modal td:first-child { color: var(--muted); width: 45%; }
-    #help-modal kbd {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 1px 6px;
-      font-family: monospace;
-      font-size: 0.78rem;
-    }
-    #toast {
-      position: fixed;
-      bottom: 16px;
-      right: 16px;
-      background: rgba(12,12,14,0.9);
-      color: var(--accent-2);
-      padding: 8px 12px;
-      border-radius: 8px;
-      display: none;
-      z-index: 20;
-      pointer-events: none;
-    }
-    @media (orientation: landscape) {
-      #app { flex-direction: row; }
-      #stage { flex: 1; }
-      #controls {
-        width: min(46vw, 380px);
-        grid-template-columns: 1fr;
-        align-content: center;
-      }
-      canvas { width: min(100%, calc(100dvh * 1.5)); }
-    }
-    @media (min-width: 900px) {
-      #controls { max-width: 420px; margin: 0 auto; }
-    }
-  </style>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="GBA">
+  <title>GBA</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="/src/styles/base.css">
+  <link rel="stylesheet" href="/src/styles/play.css">
 </head>
-<body>
-  <div id="app">
-    <div id="topbar">
-      <button id="menu-btn" type="button">Menu</button>
-      <button id="help-btn" type="button" title="Controls">?</button>
-      <span id="status"></span>
-    </div>
-    <div id="stage">
-      <canvas id="canvas" width="240" height="160"></canvas>
-      <div id="progress-wrap">
-        <span id="progress-label">Loading ROM…</span>
-        <progress id="progress" value="0" max="100"></progress>
+<body class="play-page">
+  <div class="play-ambient" aria-hidden="true"></div>
+
+  <div class="app" id="app" data-touch="auto">
+    <header class="bar">
+      <a class="icon-btn" id="back" href="/gba" aria-label="Back to library"></a>
+      <div class="bar-title">
+        <strong id="title">Loading</strong>
+        <span class="bar-status" id="status" aria-live="polite"></span>
       </div>
-      <div id="overlay">Tap to start</div>
-      <div id="menu">
-        <button id="save-state" type="button">Save state</button>
-        <div id="load-list"></div>
-        <button id="fast-forward" type="button">Fast forward</button>
-        <button id="cheats" type="button">Cheats</button>
-        <button id="back" type="button">Back to library</button>
-        <button id="menu-close" type="button">Close</button>
+      <div class="bar-actions">
+        <button class="icon-btn" id="save-btn" type="button" aria-label="Save state" title="Save state (Ctrl+S)" disabled></button>
+        <button class="icon-btn" id="help-btn" type="button" aria-label="Controls" title="Controls (?)"></button>
+        <button class="icon-btn" id="menu-btn" type="button" aria-label="More" title="More (Esc)"></button>
       </div>
-      <div id="cheat-modal">
-        <h3>Cheats</h3>
-        <p class="hint">GameShark / Action Replay codes, one per line.<br>Format: <code>Name: XXXXXXXX YYYYYYYY</code> — lines starting with # are ignored.</p>
-        <textarea id="cheat-input" placeholder="Walk through walls: 509197D3 542975F4&#10;Rare candy: 128898B6 EDA43037"></textarea>
-        <div class="row">
-          <button id="cheat-apply" type="button">Apply</button>
-          <button id="cheat-clear" type="button">Clear</button>
-          <button id="cheat-close" type="button">Close</button>
+    </header>
+
+    <main class="stage" id="stage">
+      <div class="screen" id="screen">
+        <canvas id="canvas" width="240" height="160"></canvas>
+        <div class="flash" id="flash"></div>
+        <div class="ff-badge" id="ff-badge" hidden>2×</div>
+
+        <div class="overlay" id="loading">
+          <p class="ov-title" id="loading-title">Loading</p>
+          <div class="meter"><i id="meter-fill"></i></div>
+          <p class="ov-sub num" id="loading-label">Starting the emulator</p>
+        </div>
+        <button class="overlay ov-start" id="start" type="button" hidden>
+          <span class="ov-title">Press any button</span>
+          <span class="ov-sub">or tap the screen to start</span>
+        </button>
+        <button class="overlay ov-paused" id="paused" type="button" hidden>
+          <span class="ov-icon" id="paused-icon"></span>
+          <span class="ov-title">Paused</span>
+          <span class="ov-sub">Tap to keep playing</span>
+        </button>
+        <div class="overlay ov-error" id="error" hidden>
+          <p class="ov-title" id="error-title">Couldn’t start this game</p>
+          <p class="ov-sub" id="error-label"></p>
+          <div class="ov-actions">
+            <button class="btn primary small" type="button" id="retry">Try again</button>
+            <a class="btn ghost small" id="error-back" href="/gba">Library</a>
+          </div>
         </div>
       </div>
-      <div id="help-modal">
-        <h3>Controls</h3>
-        <table>
-          <tr><td>D-Pad</td><td><kbd>&uarr;</kbd> <kbd>&darr;</kbd> <kbd>&larr;</kbd> <kbd>&rarr;</kbd> / on-screen pad</td></tr>
-          <tr><td>A</td><td><kbd>Z</kbd> / A button</td></tr>
-          <tr><td>B</td><td><kbd>X</kbd> / B button</td></tr>
-          <tr><td>L</td><td><kbd>A</kbd> / L shoulder</td></tr>
-          <tr><td>R</td><td><kbd>S</kbd> / R shoulder</td></tr>
-          <tr><td>Start</td><td><kbd>Enter</kbd> / Start button</td></tr>
-          <tr><td>Select</td><td><kbd>Backspace</kbd> / Select button</td></tr>
-          <tr><td>Fast forward</td><td>Menu &rarr; Fast forward (2x)</td></tr>
-          <tr><td>Gamepad</td><td>Standard mapping if connected</td></tr>
-        </table>
-        <div class="row" style="display:flex;gap:8px;margin-top:8px">
-          <button id="help-close" type="button" style="flex:1">Close</button>
-        </div>
+    </main>
+
+    <!-- on-screen controls -->
+    <div class="pad-shoulder pad-l" data-zone="btn" data-btn="L"><span>L</span><kbd>A</kbd></div>
+    <div class="pad-shoulder pad-r" data-zone="btn" data-btn="R"><span>R</span><kbd>S</kbd></div>
+
+    <div class="pad-dpad-zone" data-zone="dpad" aria-label="D-pad">
+      <div class="dpad" id="dpad">
+        <i class="arm arm-v"></i><i class="arm arm-h"></i>
+        <i class="tri up" data-btn="Up"></i><i class="tri down" data-btn="Down"></i>
+        <i class="tri left" data-btn="Left"></i><i class="tri right" data-btn="Right"></i>
+        <i class="dimple"></i>
       </div>
     </div>
-    <div id="controls">
-      <div class="shoulders">
-        <div class="shoulder" data-btn="L">L</div>
-        <div class="shoulder" data-btn="R">R</div>
-      </div>
-      <div class="dpad">
-        <div class="pad up" data-btn="Up">▲</div>
-        <div class="pad left" data-btn="Left">◀</div>
-        <div class="pad right" data-btn="Right">▶</div>
-        <div class="pad down" data-btn="Down">▼</div>
-      </div>
+
+    <div class="pad-face-zone" data-zone="face" aria-label="A and B buttons">
       <div class="face">
-        <div class="face-btn b" data-btn="B">B</div>
-        <div class="face-btn a" data-btn="A">A</div>
+        <div class="fbtn fb-b" data-btn="B"><span>B</span><kbd>X</kbd></div>
+        <div class="fbtn fb-a" data-btn="A"><span>A</span><kbd>Z</kbd></div>
       </div>
-      <div class="sys-row">
-        <div class="sys" data-btn="Select">Select</div>
-        <div class="sys" data-btn="Start">Start</div>
-      </div>
+    </div>
+
+    <div class="pad-sys">
+      <div class="sbtn" data-zone="btn" data-btn="Select"><i></i><span>Select</span></div>
+      <div class="sbtn" data-zone="btn" data-btn="Start"><i></i><span>Start</span></div>
+      <button class="ff" id="ff" type="button" aria-pressed="false" aria-label="Fast forward 2×" title="Fast forward (F, or hold Space)">
+        <span class="ff-icon"></span><span class="num">2×</span>
+      </button>
     </div>
   </div>
-  <div id="toast">Saved</div>
+
+  <dialog class="sheet" id="menu-sheet" aria-labelledby="menu-title"></dialog>
+  <dialog class="sheet" id="help-sheet" aria-labelledby="help-title"></dialog>
+  <dialog class="sheet" id="cheat-sheet" aria-labelledby="cheat-title"></dialog>
+
   <script type="module" src="/src/play.js"></script>
 </body>
 </html>

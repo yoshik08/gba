@@ -3,98 +3,92 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>GBA Library</title>
-  <link rel="stylesheet" href="/src/theme.css">
-  <style>
-    body { padding: 20px 16px 40px; }
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-    h1 { font-size: 1.4rem; margin: 0; letter-spacing: 0.04em; }
-    .user {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      color: var(--muted);
-      font-size: 0.9rem;
-    }
-    .btn {
-      background: var(--accent);
-      color: #0b0b10;
-      border: 0;
-      border-radius: 999px;
-      padding: 10px 16px;
-      font-weight: 600;
-    }
-    .btn.ghost {
-      background: transparent;
-      color: var(--text);
-      border: 1px solid var(--border);
-    }
-    #signed-out, #signed-in { display: none; }
-    #grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 16px;
-    }
-    .game-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: var(--shadow);
-      cursor: pointer;
-    }
-    .cover {
-      aspect-ratio: 1 / 1;
-      background: linear-gradient(160deg, #242436, #121218);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--muted);
-      font-size: 0.8rem;
-      text-align: center;
-      padding: 8px;
-    }
-    .cover img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-    .game-card h3 {
-      margin: 0;
-      padding: 10px;
-      font-size: 0.9rem;
-      font-weight: 600;
-    }
-    .empty, .error { color: var(--muted); }
-    .center {
-      min-height: 60vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-  </style>
+  <meta name="theme-color" content="#000000">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Your Game Boy Advance library, streamed from Google Drive and saved to the cloud.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="GBA">
+  <title>GBA</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="/src/styles/base.css">
+  <link rel="stylesheet" href="/src/styles/library.css">
 </head>
-<body>
-  <header>
-    <h1>GBA</h1>
-    <div class="user">
-      <span id="user-name"></span>
-      <button id="sign-out" class="btn ghost" type="button">Sign out</button>
+<body class="library-page">
+  <div class="ambient" aria-hidden="true"><i></i><i></i></div>
+
+  <header class="top" id="top">
+    <a class="wordmark" href="/gba" aria-label="GBA library">GBA</a>
+    <div class="top-actions" id="top-actions" hidden>
+      <button class="sync" id="sync" type="button" data-state="syncing">
+        <span class="sync-dot" aria-hidden="true"></span>
+        <span class="sync-label" id="sync-label">Syncing with Drive</span>
+      </button>
+      <button class="account" id="account" type="button" aria-haspopup="dialog" aria-label="Account and settings">
+        <span class="avatar" id="avatar"></span>
+      </button>
     </div>
   </header>
-  <div id="signed-out" class="center">
-    <button id="login-button" class="btn" type="button">Sign in with Google</button>
-  </div>
-  <div id="signed-in">
-    <div id="grid"></div>
-  </div>
+
+  <main id="main">
+    <!-- signed out -->
+    <section class="welcome" id="signed-out" hidden>
+      <div class="welcome-screen" aria-hidden="true">
+        <div class="lcd lcd-boot">
+          <canvas id="boot-canvas"></canvas>
+        </div>
+      </div>
+      <div class="welcome-copy">
+        <h1 class="welcome-title" id="welcome-title">Your Game Boy Advance library, in any browser.</h1>
+        <p class="welcome-sub">Games stream from your Google Drive. Saves follow you to every device, and downloaded games keep working offline.</p>
+        <div class="welcome-actions">
+          <button id="login-button" class="btn primary" type="button"></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- signed in -->
+    <section id="signed-in" hidden>
+      <section class="hero" id="hero" hidden></section>
+
+      <section class="shelf" id="recent" hidden>
+        <div class="section-head"><h2>Recently played</h2></div>
+        <div class="shelf-row" id="recent-row"></div>
+      </section>
+
+      <section class="library" id="library">
+        <div class="lib-head">
+          <div class="lib-title">
+            <h2>Library</h2>
+            <span class="lib-count num" id="lib-count"></span>
+          </div>
+          <div class="lib-tools">
+            <label class="search">
+              <span class="search-icon" id="search-icon"></span>
+              <input id="search" type="search" placeholder="Search games" autocomplete="off" spellcheck="false" enterkeyhint="search" aria-label="Search games">
+              <kbd class="search-kbd" aria-hidden="true">/</kbd>
+            </label>
+            <div class="seg" id="filters" role="tablist" aria-label="Filter games">
+              <button role="tab" type="button" data-filter="all" aria-selected="true">All</button>
+              <button role="tab" type="button" data-filter="recent" aria-selected="false">Played</button>
+              <button role="tab" type="button" data-filter="saves" aria-selected="false">Saves</button>
+              <button role="tab" type="button" data-filter="offline" aria-selected="false">Offline</button>
+              <span class="seg-thumb" aria-hidden="true"></span>
+            </div>
+          </div>
+        </div>
+        <div class="grid" id="grid" aria-live="polite"></div>
+        <div class="empty" id="empty" hidden></div>
+      </section>
+    </section>
+  </main>
+
+  <dialog class="sheet game-sheet" id="game-sheet" aria-labelledby="gs-title"></dialog>
+  <dialog class="sheet" id="account-sheet" aria-labelledby="acct-title"></dialog>
+
   <script type="module" src="/src/library.js"></script>
 </body>
 </html>

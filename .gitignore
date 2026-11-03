@@ -21,3 +21,6 @@ build/
 .env*
 *.log
 public/mgba/
+
+# local preview data (mock API, test ROMs, QA output)
+.local/
